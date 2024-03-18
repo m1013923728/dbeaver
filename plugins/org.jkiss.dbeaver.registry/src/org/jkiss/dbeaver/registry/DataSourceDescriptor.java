@@ -28,6 +28,7 @@ import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ModelPreferences;
 import org.jkiss.dbeaver.model.*;
 import org.jkiss.dbeaver.model.access.DBAAuthCredentials;
+import org.jkiss.dbeaver.model.access.DBAAuthModelExternal;
 import org.jkiss.dbeaver.model.access.DBACredentialsProvider;
 import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
 import org.jkiss.dbeaver.model.app.DBPProject;
@@ -913,15 +914,8 @@ public class DataSourceDescriptor
             }
             secretsResolved = true;
         } else {
-            String subjectId = null;
             if (selectedSharedCredentials != null) {
-                subjectId = DataSourceUtils.getSubjectFromSecret(selectedSharedCredentials);
-            } else if (DBWorkbench.getPlatform().getApplication() instanceof DBSDefaultTeamProvider teamProvider) {
-                subjectId = teamProvider.getDefaultTeamId();
-            } else {
-                throw new DBException("Can not determine secret subject. Shared secrets not supported.");
-            }
-            if (isSharedCredentialsSelected() || secret != null) {
+                String subjectId = DataSourceUtils.getSubjectFromSecret(selectedSharedCredentials);
                 try {
                     secretController.setSubjectSecretValue(subjectId, this,
                         new DBSSecretValue(subjectId, getSecretValueId(), "", secret));
@@ -2043,6 +2037,12 @@ public class DataSourceDescriptor
         }
 
         var reqAuthProvider = getConnectionConfiguration().getAuthModelDescriptor().getRequiredAuthProviderId();
+        if (!CommonUtils.isEmpty(reqAuthProvider)) {
+            return reqAuthProvider;
+        }
+        if (getConnectionConfiguration().getAuthModel() instanceof DBAAuthModelExternal<?> authModelExternal) {
+            return authModelExternal.getRequiredExternalAuth(getConnectionConfiguration());
+        }
         return CommonUtils.isEmpty(reqAuthProvider) ? null : reqAuthProvider;
     }
 
@@ -2267,13 +2267,16 @@ public class DataSourceDescriptor
                 );
             }
         }
-        connectionInfo.getHandlers().forEach(
-            handler -> {
-                if (!handlersFromSecret.contains(handler.getId())) {
-                    handler.setSavePassword(false);
+        //private secret contains handlers config, shared - not
+        if (!isSharedCredentials()) {
+            connectionInfo.getHandlers().forEach(
+                handler -> {
+                    if (!handlersFromSecret.contains(handler.getId())) {
+                        handler.setSavePassword(false);
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
     private void loadFromLegacySecret(DBSSecretController secretController) {

@@ -14,28 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.struct;
+package org.jkiss.dbeaver.erd.ui.connector;
 
-import org.jkiss.dbeaver.model.DBPObject;
+import org.eclipse.draw2d.PolylineConnection;
 
-/**
- * DBSTypedObjectModifier
- */
-public interface DBSTypedObjectModifier extends DBPObject {
+public class ERDConnection extends PolylineConnection {
+    private boolean selected = false;
 
-    /**
-     * Value scale.
-     */
-    void setScale(Integer scale);
+    public boolean isSelected() {
+        return selected;
+    }
 
-    /**
-     * Value precision.
-     */
-    void setPrecision(Integer precision);
-
-    /**
-     * Value length.
-     */
-    void setMaxLength(Integer maxLength);
+    public void setSelected(boolean hightlight) {
+        this.selected = hightlight;
+    }
 
 }
